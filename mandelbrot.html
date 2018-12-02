@@ -1,0 +1,154 @@
+﻿<html>
+	<head>
+		<title>Множество Мандельброта</title>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<script>
+			window.addEventListener('load', function () {
+				var canvas = document.getElementById('canvas');
+				var canvasLeft = canvas.offsetLeft + 1;
+				var canvasRight = canvasLeft + canvas.offsetWidth - 2;
+				var canvasTop = canvas.offsetTop + 1;
+				var canvasBottom = canvasTop + canvas.offsetHeight - 2;
+				var sel = document.getElementById('selection');
+				var startX = 0, startY = 0, endX = 0, endY = 0, selection = false;
+				var w = canvas.width;
+				var h = canvas.height;
+				var context = canvas.getContext('2d');
+				var imageData = context.createImageData(w, h);
+				var data = imageData.data;
+				var minx, maxx, miny, maxy;
+				var lim;
+				document.onselectstart = function () { 
+					return false; 
+				};
+				document.body.addEventListener('mousedown', function(event) {
+					if (selection) {
+						return;
+					}
+					startX = event.clientX;
+					startY = event.clientY;
+					if (startX < canvasLeft || startX > canvasRight || startY < canvasTop || startY > canvasBottom) {
+						return;
+					}
+					selection = true;
+					sel.style.top = startY;
+					sel.style.left = startX;
+					sel.style.width = 0;
+					sel.style.height = 0;
+					sel.style.display = 'block';
+				}, false);
+				document.body.addEventListener('mousemove', function(event) {
+					if (!selection) {
+						return;
+					}
+					endX = event.clientX;
+					endY = event.clientY;
+					if (endX < startX) endX = startX;
+					if (endY < startY) endY = startY;
+					if (endX > canvasRight) {
+						endX = canvasRight;
+					}
+					if (endY > canvasBottom) {
+						endY = canvasBottom;
+					}
+					sel.style.width = endX - startX;
+					sel.style.height = endY - startY;
+				}, false);
+				document.body.addEventListener('mouseup', function(event) {
+					if (!selection) {
+						return;
+					}
+					selection = false;
+					var width = Math.max(endX - startX, endY - startY);
+					endX = startX + width;
+					endY = startY + width;
+					var mnx = (startX - canvasLeft) / (canvasRight - canvasLeft) * (maxx - minx) + minx;
+					var mxx = (endX - canvasLeft) / (canvasRight - canvasLeft) * (maxx - minx) + minx;
+					var mny = (startY - canvasTop) / (canvasBottom - canvasTop) * (maxy - miny) + miny;
+					var mxy = (endY - canvasTop) / (canvasBottom - canvasTop) * (maxy - miny) + miny;
+					minx = mnx;
+					miny = mny;
+					maxx = mxx;
+					maxy = mxy;
+					draw();
+				}, false);
+				document.getElementById('reset').addEventListener('click', reset, false);
+				document.getElementById('sharp').addEventListener('click', function() {
+					lim *= 1.3;
+					draw();
+				}, false);
+				document.getElementById('save').addEventListener('click', function() {
+					window.open(canvas.toDataURL("image/png"));
+				}, false);
+
+				reset();
+				
+				function reset() {
+					minx = -2;
+					maxx = 1;
+					miny = -1.5;
+					maxy = 1.5;
+					lim = 100;
+					draw();
+				}
+
+				function draw() {
+					document.getElementById('load').style.display = 'block';
+					setTimeout(function() {
+						for (var i = 0; i < h; i++) {
+							for (var j = 0; j < w; j++) {
+								var x = (maxx - minx) * j / w + minx;
+								var y = (maxy - miny) * i / h + miny;
+								var l = lim - getLimit(x, y);
+								var r = Math.floor(l * 256 / lim);
+								var g = r;
+								var b = r;
+								putPixel(data, w, h, j, i, r, g, b);
+							}
+						}
+						sel.style.display = 'none';
+						context.putImageData(imageData, 0, 0);
+						document.getElementById('load').style.display = 'none';
+					}, 500);
+				}
+			
+				function getLimit(x, y) {
+					var x0 = 0, y0 = 0, x1, y1;
+					for (var i = 0; i < lim; i++) {
+						if (x0 * x0 + y0 * y0 > 4) {
+							return i;
+						}
+						x1 = x0 * x0 - y0 * y0 + x;
+						y1 = 2 * x0 * y0 + y;
+						x0 = x1;
+						y0 = y1;
+					}
+					return lim;
+				}
+				function putPixel(a, w, h, x, y, r, g, b) {
+					var off = 4 * (y * w + x);
+					a[off] = r;
+					a[off + 1] = g;
+					a[off + 2] = b;
+					a[off + 3] = 255;
+				}
+				
+				function random(x) {
+					return Math.floor(Math.random() * x);
+				}
+			}, false);
+		</script>
+	</head>
+	<body>
+		<center>
+		<canvas id="canvas" width="300" height="300" style="border: 1px solid #aaa"> Alas! </canvas>
+		<div id="selection" style="opacity:0.5; display:none; position: absolute; background-color: white; border: 1px solid #aaa; width:0; height:0;"></div>
+		<br>
+		<button id="reset" style="margin: 5px;">Сбросить</button>
+		<button id="sharp" style="margin: 5px;">Сделать чётче</button>
+		<button id="save" style="margin: 5px;">Открыть</button>
+		<div id="load" style="display:block; margin: 5px; font-family: Arial; font-size:10pt;">Загрузка...</div>
+		</center>
+	</body>
+
+</html>
